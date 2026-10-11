@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSS Library Management</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6fb;color:#17243a}
+header{background:#123b63;color:white;padding:22px 16px;text-align:center}
+header h1{font-size:22px;margin:0 0 7px}
+header p{margin:0;color:#d7e8f7}
+main{max-width:950px;margin:22px auto;padding:0 14px}
+.card{background:white;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 3px 12px #152b4410}
+h2{font-size:19px;margin-top:0}
+input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:7px;border:1px solid #cbd5e1;font-size:15px}
+button{background:#155e9a;color:white;border:0;font-weight:bold;cursor:pointer}
+button.secondary{background:#64748b}
+button.danger{background:#b42318;width:auto;padding:7px 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
+.stat{background:#eaf3fc;padding:14px;border-radius:9px}
+.stat strong{display:block;font-size:26px;color:#123b63;margin-top:5px}
+.muted{color:#64748b;font-size:13px}
+#app,#login{display:none}
+#message{padding:10px;border-radius:7px;margin:10px 0;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0}
+.table-wrap{overflow-x:auto}
+.badge{background:#e0f2fe;padding:4px 7px;border-radius:5px;white-space:nowrap}
+#logout{max-width:130px}
+footer{text-align:center;color:#64748b;font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<h1>TEMA SECONDARY SCHOOL</h1>
+<p>LIBRARY MANAGEMENT SYSTEM</p>
+</header>
+
+<main>
+<div id="message" role="status" style="display:none"></div>
+
+<section id="login" class="card">
+<h2>Staff Sign In</h2>
+<p class="muted">Sign in using your authorised library staff account.</p>
+<form id="loginForm">
+<input id="email" type="email" placeholder="Staff email address" required>
+<input id="password" type="password" placeholder="Password" required>
+<button type="submit">Sign In</button>
+</form>
+</section>
+
+<section id="app">
+<div class="card">
+<p id="welcome">Welcome, library staff!</p>
+<button id="logout" class="secondary">Sign Out</button>
+</div>
+
+<div class="card">
+<h2>Library Dashboard</h2>
+<div class="grid">
+<div class="stat">Book titles<strong id="titles">0</strong></div>
+<div class="stat">Total copies<strong id="total">0</strong></div>
+<div class="stat">Available copies<strong id="available">0</strong></div>
+<div class="stat">Shelves used<strong id="shelves">0</strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Add a Book</h2>
+<p class="muted">Enter the shelf name and exact location so staff can find the book.</p>
+<form id="bookForm">
+<input id="title" placeholder="Book title" required>
+<input id="author" placeholder="Author" required>
+<input id="subject" placeholder="Subject or category" required>
+<input id="bookCode" placeholder="Book code or ISBN" required>
+<input id="shelf" placeholder="Shelf name (e.g. Fiction)" required>
+<input id="location" placeholder="Exact location (e.g. Shelf B, Row 2)" required>
+<input id="totalCopies" type="number" min="1" step="1" placeholder="Total copies" required>
+<input id="shelfCopies" type="number" min="0" step="1" placeholder="Available copies" required>
+<button type="submit">Save Book</button>
+</form>
+</div>
+
+<div class="card">
+<h2>Book Inventory</h2>
+<input id="search" placeholder="Search title, author, code, subject or shelf...">
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>Book</th><th>Code</th><th>Shelf / Location</th><th>Copies</th><th>Action</th></tr>
+</thead>
+<tbody id="bookRows">
+<tr><td colspan="5">Loading books...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</section>
+</main>
+<footer>Tema Secondary School • Library Management System</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import {
+  getFirestore, collection, doc, getDoc, addDoc, deleteDoc,
+  onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+/* Replace the placeholder values with your own Firebase web config. */
+ const firebaseConfig = {
+  apiKey: "AIzaSyDh-r_BgrjleBhtg3wT5J3TqFstxkx3m_A",
+  authDomain: "tema-secondary-school-library.firebaseapp.com",
+  projectId: "tema-secondary-school-library",
+  storageBucket: "tema-secondary-school-library.firebasestorage.app",
+  messagingSenderId: "384340085272",
+  appId: "1:384340085272:web:ad37786103bddb5cdcd16d"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+/* This must match the Database ID you created in Firebase. */
+const db = getFirestore(app, "tss-library-db");
+
+const $ = id => document.getElementById(id);
+let currentStaff = null;
+let books = [];
+let unsubscribeBooks = null;
+
+function showMessage(message, error = false) {
+  $("message").style.display = "block";
+  $("message").style.background = error ? "#fee2e2" : "#dcfce7";
+  $("message").style.color = error ? "#991b1b" : "#166534";
+  $("message").textContent = message;
+}
+function hideMessage() {
+  $("message").style.display = "none";
+}
+function showLogin() {
+  $("login").style.display = "block";
+  $("app").style.display = "none";
+}
+function showApp() {
+  $("login").style.display = "none";
+  $("app").style.display = "block";
+}
+
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  hideMessage();
+  try {
+    await signInWithEmailAndPassword(
+      auth, $("email").value.trim(), $("password").value
+    );
+  } catch (err) {
+    showMessage("Sign-in failed. Check your email and password. " + err.message, true);
+  }
+});
+
+$("logout").addEventListener("click", async () => {
+  if (unsubscribeBooks) unsubscribeBooks();
+  await signOut(auth);
+});
+
+onAuthStateChanged(auth, async user => {
+  if (unsubscribeBooks) {
+    unsubscribeBooks();
+    unsubscribeBooks = null;
+  }
+  currentStaff = null;
+  if (!user) {
+    showLogin();
+    return;
+  }
+
+  try {
+    const staffSnap = await getDoc(doc(db, "staff", user.uid));
+    if (!staffSnap.exists() || staffSnap.data().active !== true) {
+      showMessage("This account is not authorised as active library staff. Ask the administrator to check the staff record.", true);
+      await signOut(auth);
+      return;
+    }
+
+    currentStaff = { uid: user.uid, ...staffSnap.data() };
+    $("welcome").textContent = "Welcome, " + (currentStaff.name || "Library Staff")
+      + " • " + currentStaff.role;
+    showApp();
+    startBookListener();
+  } catch (err) {
+    showMessage("Could not verify staff access. Check your Firestore database ID and rules. " + err.message, true);
+  }
+});
+
+function startBookListener() {
+  unsubscribeBooks = onSnapshot(collection(db, "books"), snap => {
+    books = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderBooks();
+  }, err => {
+    showMessage("Could not load inventory: " + err.message, true);
+  });
+}
+
+function renderBooks() {
+  const term = $("search").value.toLowerCase().trim();
+  const filtered = books.filter(b =>
+    [b.title, b.author, b.subject, b.bookCode, b.shelf, b.location]
+      .some(v => String(v || "").toLowerCase().includes(term))
+  );
+
+  $("titles").textContent = books.length;
+  $("total").textContent = books.reduce((n,b) => n + (Number(b.totalCopies) || 0), 0);
+  $("available").textContent = books.reduce((n,b) => n + (Number(b.shelfCopies) || 0), 0);
+  $("shelves").textContent = new Set(books.map(b => b.shelf).filter(Boolean)).size;
+
+  const rows = $("bookRows");
+  rows.replaceChildren();
+
+  if (!filtered.length) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 5;
+    td.textContent = books.length ? "No matching books found." : "No books added yet.";
+    tr.appendChild(td);
+    rows.appendChild(tr);
+    return;
+  }
+
+  filtered.forEach(b => {
+    const tr = document.createElement("tr");
+    const info = document.createElement("td");
+    info.textContent = (b.title || "") + "\n" + (b.author || "");
+    info.style.whiteSpace = "pre-line";
+
+    const code = document.createElement("td");
+    code.textContent = b.bookCode || "";
+
+    const place = document.createElement("td");
+    place.textContent = (b.shelf || "") + "\n" + (b.location || "");
+    place.style.whiteSpace = "pre-line";
+
+    const copies = document.createElement("td");
+    copies.textContent = (b.shelfCopies ?? 0) + " / " + (b.totalCopies ?? 0);
+
+    const action = document.createElement("td");
+    if (["admin", "librarian"].includes(currentStaff?.role)) {
+      const btn = document.createElement("button");
+      btn.className = "danger";
+      btn.textContent = "Delete";
+      btn.addEventListener("click", () => removeBook(b.id, b.title));
+      action.appendChild(btn);
+    } else {
+      action.textContent = "View only";
+    }
+
+    [info, code, place, copies, action].forEach(td => tr.appendChild(td));
+    rows.appendChild(tr);
+  });
+}
+
+$("search").addEventListener("input", renderBooks);
+
+$("bookForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  hideMessage();
+
+  if (!currentStaff || !["admin", "librarian"].includes(currentStaff.role)) {
+    showMessage("Your account does not have permission to add books.", true);
+    return;
+  }
+
+  const totalCopies = Number($("totalCopies").value);
+  const shelfCopies = Number($("shelfCopies").value);
+
+  if (!Number.isInteger(totalCopies) || !Number.isInteger(shelfCopies) ||
+      totalCopies < 1 || shelfCopies < 0 || shelfCopies > totalCopies) {
+    showMessage("Enter whole numbers. Available copies must be between zero and total copies.", true);
+    return;
+  }
+
+  const book = {
+    title: $("title").value.trim(),
+    author: $("author").value.trim(),
+    subject: $("subject").value.trim(),
+    bookCode: $("bookCode").value.trim(),
+    shelf: $("shelf").value.trim(),
+    location: $("location").value.trim(),
+    totalCopies,
+    shelfCopies,
+    createdBy: currentStaff.uid,
+    createdAt: serverTimestamp()
+  };
+
+  try {
+    await addDoc(collection(db, "books"), book);
+    $("bookForm").reset();
+    showMessage("Book saved successfully!");
+  } catch (err) {
+    showMessage("Could not save the book: " + err.message, true);
+  }
+});
+
+async function removeBook(id, title) {
+  if (!confirm('Delete "' + (title || "this book") + '" from the inventory?')) return;
+  try {
+    await deleteDoc(doc(db, "books", id));
+    showMessage("Book deleted.");
+  } catch (err) {
+    showMessage("Could not delete the book: " + err.message, true);
+  }
+}
+</script>
+</body>
+</html>
