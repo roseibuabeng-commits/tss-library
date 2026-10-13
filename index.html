@@ -106,7 +106,12 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import {
-  getFirestore, collection, doc, getDoc, addDoc, deleteDoc,
+  getFirestore, 
+  collection,  
+  doc,
+  getDoc, 
+  addDoc, 
+  deleteDoc,
   onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
@@ -124,7 +129,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 /* This must match the Database ID you created in Firebase. */
-const db = getFirestore(app, "tss-library-db");
+const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
 let currentStaff = null;
