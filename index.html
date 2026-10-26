@@ -5,30 +5,254 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSS Library Management</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f3f6fb;color:#17243a}
-header{background:#123b63;color:white;padding:22px 16px;text-align:center}
-header h1{font-size:22px;margin:0 0 7px}
-header p{margin:0;color:#d7e8f7}
-main{max-width:950px;margin:22px auto;padding:0 14px}
-.card{background:white;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 3px 12px #152b4410}
-h2{font-size:19px;margin-top:0}
-input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:7px;border:1px solid #cbd5e1;font-size:15px}
-button{background:#155e9a;color:white;border:0;font-weight:bold;cursor:pointer}
-button.secondary{background:#64748b}
-button.danger{background:#b42318;width:auto;padding:7px 10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}
-.stat{background:#eaf3fc;padding:14px;border-radius:9px}
-.stat strong{display:block;font-size:26px;color:#123b63;margin-top:5px}
-.muted{color:#64748b;font-size:13px}
-#app,#login{display:none}
-#message{padding:10px;border-radius:7px;margin:10px 0;white-space:pre-wrap}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0}
-.table-wrap{overflow-x:auto}
-.badge{background:#e0f2fe;padding:4px 7px;border-radius:5px;white-space:nowrap}
-#logout{max-width:130px}
-footer{text-align:center;color:#64748b;font-size:12px;padding:20px}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --navy: #123b63;
+  --blue: #155e9a;
+  --light-blue: #eaf3fc;
+  --background: #f3f6fb;
+  --text: #17243a;
+  --muted: #64748b;
+  --border: #dbe4ef;
+  --white: #ffffff;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+header {
+  background: linear-gradient(135deg, #0c2946, #155e9a);
+  color: white;
+  padding: 30px 16px;
+  text-align: center;
+  border-bottom: 4px solid #8bb9e5;
+}
+
+header h1 {
+  font-size: clamp(21px, 4vw, 30px);
+  letter-spacing: 0.5px;
+  margin: 0 0 8px;
+}
+
+header p {
+  margin: 0;
+  color: #d7e8f7;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+
+main {
+  max-width: 1150px;
+  margin: 28px auto;
+  padding: 0 18px;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid #e7edf5;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 22px;
+  box-shadow: 0 5px 20px rgba(21, 43, 68, 0.06);
+}
+
+h2 {
+  font-size: 21px;
+  line-height: 1.3;
+  margin: 0 0 18px;
+  color: var(--navy);
+}
+
+input,
+select,
+button {
+  width: 100%;
+  padding: 13px 14px;
+  margin: 7px 0;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+input,
+select {
+  background: #fff;
+  color: var(--text);
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(21, 94, 154, 0.12);
+}
+
+button {
+  background: var(--blue);
+  color: white;
+  border: 0;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: var(--navy);
+}
+
+button:focus-visible {
+  outline: 3px solid #8bb9e5;
+  outline-offset: 2px;
+}
+
+button.secondary {
+  background: #526780;
+}
+
+button.danger {
+  background: #b42318;
+  width: auto;
+  padding: 9px 13px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat {
+  background: linear-gradient(145deg, #f0f7ff, #e3effc);
+  border: 1px solid #dceafa;
+  padding: 18px;
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.stat strong {
+  display: block;
+  font-size: 30px;
+  color: var(--navy);
+  margin-top: 6px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+#app,
+#login {
+  display: none;
+}
+
+#message {
+  padding: 12px 15px;
+  border-radius: 9px;
+  margin: 12px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: white;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 13px 12px;
+  border-bottom: 1px solid #e8eef5;
+  vertical-align: top;
+}
+
+th {
+  background: #edf4fb;
+  color: var(--navy);
+  font-weight: bold;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover {
+  background: #f8fbff;
+}
+
+.badge {
+  background: #e0f2fe;
+  color: var(--navy);
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+#logout {
+  max-width: 150px;
+}
+
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 24px 16px;
+}
+
+@media (min-width: 700px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .card {
+    padding: 28px;
+  }
+}
+
+@media (max-width: 420px) {
+  main {
+    padding: 0 10px;
+    margin: 16px auto;
+  }
+
+  .card {
+    padding: 17px;
+    border-radius: 12px;
+  }
+
+  .grid {
+    gap: 9px;
+  }
+
+  .stat {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .stat strong {
+    font-size: 25px;
+  }
+}
+
 </style>
 </head>
 <body>
